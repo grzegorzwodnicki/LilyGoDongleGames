@@ -1,14 +1,16 @@
 #pragma once
 
-#include <Arduino.h>
+#include "GameBase.h"
 
 // One-button Flappy Bird clone. Press BOOT to flap, fly through the gaps.
 // After a while on the title screen an autopilot plays a demo.
-class Game {
+class FlappyGame : public GameBase {
  public:
-  void begin();
-  void update(bool buttonDown);  // One fixed 60 Hz tick.
-  void draw() const;
+  const char* name() const override { return "FLAPPY BIRD"; }
+  void begin() override;
+  void enter() override;
+  void update(bool buttonDown) override;
+  void draw() const override;
 
  private:
   enum class State : uint8_t { kTitle, kPlaying, kGameOver, kDemo };

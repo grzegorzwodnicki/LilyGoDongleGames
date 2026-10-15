@@ -1,16 +1,31 @@
-# Dongle Flappy
+# FlappyDongleLilyGo
 
-A one-button Flappy Bird clone for the **LilyGo T-Dongle S3** (ESP32-S3, 0.96" 80x160 ST7735 display, on-board APA102 RGB LED). The only input is the BOOT button.
+A tiny one-button game console for the **LilyGo T-Dongle S3** (ESP32-S3, 0.96" 80x160 ST7735 display, on-board APA102 RGB LED). The only input is the BOOT button.
 
-## Gameplay
+## Controls
 
-- **Press BOOT** to flap. The first press on the title screen starts the game.
-- Fly through the gaps between pipes. Each pair you pass is one point.
+| Where       | Action                    | Result                                       |
+|-------------|---------------------------|----------------------------------------------|
+| Menu        | tap                       | select the next game                         |
+| Menu        | hold 0.6 s                | start the highlighted game                   |
+| In a game   | game specific (see below) | play                                         |
+| In a game   | hold 2.5 s                | back to the menu (a bar shows the progress)  |
+
+The button that started a game is ignored until you release it, so a game never begins with an accidental input.
+
+## Games
+
+### Flappy Bird
+
+- Press BOOT to flap and fly through the gaps between pipes. Each pair you pass is one point.
 - The gap narrows slowly as your score grows.
-- The RGB LED flashes **green** on every point and turns **red** on game over.
-- The high score is kept in flash (NVS) and survives power cycles.
-- After game over, press BOOT to return to the title screen (it also returns on its own after 20 s).
-- After 20 s of idling on the title screen an autopilot plays a demo; press BOOT to leave it.
+- After 20 s on the title screen an autopilot plays a demo; press BOOT to leave it.
+
+### Runner
+
+- Tap to jump, hold to jump higher. Obstacles speed up with your score.
+
+Both games flash the RGB LED **green** on points or milestones and turn it **red** on game over. After game over, press BOOT to return to the game's title screen (it also returns by itself after 20 s). High scores are stored per game in flash (NVS) and survive power cycles.
 
 ## Hardware
 
@@ -39,15 +54,20 @@ Notes:
 
 ## How it works
 
-- The game runs a fixed 60 Hz update loop (`main.cpp`) and renders into an off-screen `TFT_eSprite` that is pushed to the panel once per frame, so there is no flicker.
-- `Game` is a small state machine (title, playing, game over) with simple AABB collision.
-- Difficulty is tuned by the constants at the top of `src/Game.cpp` (gravity, flap strength, pipe speed, spacing, gap size).
+- `main.cpp` runs a fixed 60 Hz loop. Games only draw into an off-screen `TFT_eSprite`; the loop pushes the finished frame to the panel once per frame, so there is no flicker.
+- Every game implements the small `GameBase` interface (`name`, `begin`, `enter`, `update`, `draw`). Adding a game means writing one class and adding it to the `games` list in `main.cpp`; the menu adapts to the number of games.
+- `Button` separates taps from holds and swallows the rest of a hold after a long press fired.
+- Each game is a small state machine (title, playing, game over) with simple AABB collision. Difficulty is tuned by the constants at the top of each game's `.cpp`.
 
 ## Project layout
 
 ```
-src/main.cpp        fixed-timestep main loop and button input
-src/Game.*          game state, physics, rendering
+src/main.cpp        main loop, menu / game switching
+src/GameBase.h      interface implemented by every game
+src/Menu.*          game picker
+src/Button.*        tap / hold detection
+src/Flappy.*        Flappy Bird
+src/Runner.*        Runner
 src/Display.*       double-buffered LCD access
 src/StatusLed.*     APA102 LED driver (bit-banged)
 platformio.ini      board, libraries and display configuration

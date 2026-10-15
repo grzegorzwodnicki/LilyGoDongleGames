@@ -1,4 +1,4 @@
-#include "Game.h"
+#include "Flappy.h"
 
 #include <Preferences.h>
 
@@ -47,15 +47,17 @@ void saveHighScore(int value) {
 }
 }  // namespace
 
-void Game::begin() {
+void FlappyGame::enter() { showTitle(); }
+
+void FlappyGame::begin() {
   highScore_ = loadHighScore();
   titleSinceMs_ = millis();
   birdY_ = kHeight / 2 - kBirdHeight / 2;
 }
 
-int Game::gapHeight() const { return max(kMinGap, kStartGap - score_ / 5); }
+int FlappyGame::gapHeight() const { return max(kMinGap, kStartGap - score_ / 5); }
 
-void Game::reset(State next) {
+void FlappyGame::reset(State next) {
   state_ = next;
   birdY_ = kHeight / 2 - kBirdHeight / 2;
   velocity_ = kFlapVelocity;  // The press that starts the game is the first flap.
@@ -64,7 +66,7 @@ void Game::reset(State next) {
   status_led::set(0, 0, 0);
 }
 
-void Game::showTitle() {
+void FlappyGame::showTitle() {
   state_ = State::kTitle;
   titleSinceMs_ = millis();
   pipeCount_ = 0;
@@ -72,14 +74,14 @@ void Game::showTitle() {
   status_led::set(0, 0, 0);
 }
 
-void Game::spawnPipe() {
+void FlappyGame::spawnPipe() {
   Pipe& pipe = pipes_[pipeCount_++];
   pipe.x = kWidth;
   pipe.gapTop = random(8, kGroundY - gapHeight() - 7);
   pipe.scored = false;
 }
 
-bool Game::collides() const {
+bool FlappyGame::collides() const {
   if (birdY_ < 0 || birdY_ + kBirdHeight > kGroundY) return true;
   const int left = kBirdX + 1;
   const int right = kBirdX + kBirdWidth - 1;
@@ -95,7 +97,7 @@ bool Game::collides() const {
   return false;
 }
 
-void Game::gameOver() {
+void FlappyGame::gameOver() {
   state_ = State::kGameOver;
   diedAtMs_ = millis();
   status_led::set(255, 0, 0);
@@ -105,7 +107,7 @@ void Game::gameOver() {
   }
 }
 
-void Game::update(bool buttonDown) {
+void FlappyGame::update(bool buttonDown) {
   const bool pressed = buttonDown && !wasDown_;
   wasDown_ = buttonDown;
   ++frame_;
@@ -141,7 +143,7 @@ void Game::update(bool buttonDown) {
 }
 
 // Aims for the bottom of the next gap and flaps whenever it starts to sink below that line.
-bool Game::autopilotWantsFlap() const {
+bool FlappyGame::autopilotWantsFlap() const {
   int target = kGroundY / 2;  // Fly level until the first pipe shows up.
   for (int i = 0; i < pipeCount_; ++i) {
     if (pipes_[i].x + kPipeWidth > kBirdX - 2) {
@@ -152,7 +154,7 @@ bool Game::autopilotWantsFlap() const {
   return velocity_ > 0 && birdY_ + kBirdHeight > target;
 }
 
-void Game::step(bool flap) {
+void FlappyGame::step(bool flap) {
   if (flap) velocity_ = kFlapVelocity;
   velocity_ += kGravity;
   birdY_ += velocity_;
@@ -187,7 +189,7 @@ void Game::step(bool flap) {
   }
 }
 
-void Game::draw() const {
+void FlappyGame::draw() const {
   TFT_eSprite& c = display::canvas();
   c.fillSprite(kSky);
 
@@ -243,5 +245,4 @@ void Game::draw() const {
     c.setTextColor(TFT_WHITE);
     c.drawString("Score " + String(score_) + "  Best " + String(highScore_), kWidth / 2, 48, 2);
   }
-  display::present();
 }
