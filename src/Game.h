@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 // One-button Flappy Bird clone. Press BOOT to flap, fly through the gaps.
+// After a while on the title screen an autopilot plays a demo.
 class Game {
  public:
   void begin();
@@ -10,7 +11,7 @@ class Game {
   void draw() const;
 
  private:
-  enum class State : uint8_t { kTitle, kPlaying, kGameOver };
+  enum class State : uint8_t { kTitle, kPlaying, kGameOver, kDemo };
   struct Pipe {
     float x;
     int gapTop;  // Y of the top edge of the gap.
@@ -18,15 +19,19 @@ class Game {
   };
   static constexpr int kMaxPipes = 3;
 
-  void reset();
+  void reset(State next);  // Starts a round (kPlaying or kDemo).
+  void showTitle();
+  void step(bool flap);  // Advances the world by one frame.
   void spawnPipe();
   bool collides() const;
+  bool autopilotWantsFlap() const;
   void gameOver();
   int gapHeight() const;
 
   State state_ = State::kTitle;
   bool wasDown_ = false;
   uint32_t frame_ = 0;
+  uint32_t titleSinceMs_ = 0;
   uint32_t diedAtMs_ = 0;
   uint32_t ledOffAtMs_ = 0;
 

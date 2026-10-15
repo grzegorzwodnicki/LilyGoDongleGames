@@ -9,6 +9,8 @@ A one-button Flappy Bird clone for the **LilyGo T-Dongle S3** (ESP32-S3, 0.96" 8
 - The gap narrows slowly as your score grows.
 - The RGB LED flashes **green** on every point and turns **red** on game over.
 - The high score is kept in flash (NVS) and survives power cycles.
+- After game over, press BOOT to return to the title screen (it also returns on its own after 20 s).
+- After 20 s of idling on the title screen an autopilot plays a demo; press BOOT to leave it.
 
 ## Hardware
 

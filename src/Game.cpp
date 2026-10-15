@@ -22,6 +22,8 @@ constexpr float kPipeSpeed = 1.3f;
 constexpr int kMinGap = 30;
 constexpr int kStartGap = 42;
 constexpr uint32_t kRestartDelayMs = 500;
+constexpr uint32_t kIdleToTitleMs = 20000;  // Game over screen returns to the title.
+constexpr uint32_t kDemoAfterMs = 20000;    // Idle title screen starts the demo.
 
 constexpr uint16_t kSky = 0x04DF;
 constexpr uint16_t kPipeGreen = 0x07E0;
@@ -47,17 +49,26 @@ void saveHighScore(int value) {
 
 void Game::begin() {
   highScore_ = loadHighScore();
+  titleSinceMs_ = millis();
   birdY_ = kHeight / 2 - kBirdHeight / 2;
 }
 
 int Game::gapHeight() const { return max(kMinGap, kStartGap - score_ / 5); }
 
-void Game::reset() {
-  state_ = State::kPlaying;
+void Game::reset(State next) {
+  state_ = next;
   birdY_ = kHeight / 2 - kBirdHeight / 2;
   velocity_ = kFlapVelocity;  // The press that starts the game is the first flap.
   score_ = 0;
   pipeCount_ = 0;
+  status_led::set(0, 0, 0);
+}
+
+void Game::showTitle() {
+  state_ = State::kTitle;
+  titleSinceMs_ = millis();
+  pipeCount_ = 0;
+  score_ = 0;
   status_led::set(0, 0, 0);
 }
 
@@ -106,15 +117,43 @@ void Game::update(bool buttonDown) {
 
   if (state_ == State::kTitle) {
     birdY_ = kHeight / 2 - kBirdHeight / 2 + 4 * sinf(frame_ * 0.1f);  // Idle bobbing.
-    if (pressed) reset();
+    if (pressed) {
+      reset(State::kPlaying);
+    } else if (millis() - titleSinceMs_ > kDemoAfterMs) {
+      reset(State::kDemo);
+    }
     return;
   }
   if (state_ == State::kGameOver) {
-    if (pressed && millis() - diedAtMs_ > kRestartDelayMs) reset();
+    const uint32_t sinceDeath = millis() - diedAtMs_;
+    if ((pressed && sinceDeath > kRestartDelayMs) || sinceDeath > kIdleToTitleMs) showTitle();
     return;
   }
+  if (state_ == State::kDemo) {
+    if (pressed) {
+      showTitle();
+      return;
+    }
+    step(autopilotWantsFlap());
+    return;
+  }
+  step(pressed);
+}
 
-  if (pressed) velocity_ = kFlapVelocity;
+// Aims for the bottom of the next gap and flaps whenever it starts to sink below that line.
+bool Game::autopilotWantsFlap() const {
+  int target = kGroundY / 2;  // Fly level until the first pipe shows up.
+  for (int i = 0; i < pipeCount_; ++i) {
+    if (pipes_[i].x + kPipeWidth > kBirdX - 2) {
+      target = pipes_[i].gapTop + gapHeight() - 6;
+      break;
+    }
+  }
+  return velocity_ > 0 && birdY_ + kBirdHeight > target;
+}
+
+void Game::step(bool flap) {
+  if (flap) velocity_ = kFlapVelocity;
   velocity_ += kGravity;
   birdY_ += velocity_;
 
@@ -132,12 +171,20 @@ void Game::update(bool buttonDown) {
     if (!pipes_[i].scored && pipes_[i].x + kPipeWidth < kBirdX) {
       pipes_[i].scored = true;
       ++score_;
-      status_led::set(0, 255, 0);
-      ledOffAtMs_ = millis() + 120;
+      if (state_ == State::kPlaying) {
+        status_led::set(0, 255, 0);
+        ledOffAtMs_ = millis() + 120;
+      }
     }
   }
 
-  if (collides()) gameOver();
+  if (collides()) {
+    if (state_ == State::kDemo) {
+      reset(State::kDemo);  // Demo just starts a fresh round.
+    } else {
+      gameOver();
+    }
+  }
 }
 
 void Game::draw() const {
@@ -179,6 +226,12 @@ void Game::draw() const {
     c.setTextDatum(TC_DATUM);
     c.setTextColor(TFT_WHITE);
     c.drawString(String(score_), kWidth / 2, 3, 4);
+  }
+
+  if (state_ == State::kDemo && (frame_ / 30) % 2 == 0) {
+    c.setTextDatum(TL_DATUM);
+    c.setTextColor(TFT_WHITE);
+    c.drawString("DEMO", 3, 3, 2);
   }
 
   if (state_ == State::kGameOver) {
