@@ -3,6 +3,7 @@
 #include "GameBase.h"
 
 // One-button Snake. Tap to turn clockwise; the field wraps around at the edges.
+// After a while on the title screen an autopilot plays a demo.
 class SnakeGame : public GameBase {
  public:
   const char* name() const override { return "SNAKE"; }
@@ -12,7 +13,7 @@ class SnakeGame : public GameBase {
   void draw() const override;
 
  private:
-  enum class State : uint8_t { kTitle, kPlaying, kGameOver };
+  enum class State : uint8_t { kTitle, kPlaying, kGameOver, kDemo };
   struct Cell {
     int8_t x;
     int8_t y;
@@ -22,9 +23,10 @@ class SnakeGame : public GameBase {
   static constexpr int kCell = 5;  // px per grid cell.
   static constexpr int kMaxLength = kCols * kRows;
 
-  void reset();
+  void reset(State next);  // Starts a round (kPlaying or kDemo).
   void showTitle();
   void move();
+  void steerAutopilot();
   void placeFood();
   void gameOver();
   int framesPerMove() const;
@@ -34,6 +36,8 @@ class SnakeGame : public GameBase {
   bool wasDown_ = false;
   bool pendingTurn_ = false;
   uint32_t frame_ = 0;
+  uint32_t titleSinceMs_ = 0;
+  uint32_t demoRestartAtMs_ = 0;  // Non-zero while a crashed demo waits to restart.
   uint32_t diedAtMs_ = 0;
   uint32_t ledOffAtMs_ = 0;
 

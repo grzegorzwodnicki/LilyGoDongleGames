@@ -29,10 +29,12 @@ The button that started a game is ignored until you release it, so a game never 
 ### Snake
 
 - Tap to turn clockwise. The field wraps around at the edges, so only hitting yourself ends the game. The snake speeds up as it grows.
+- After 20 s on the title screen an autopilot (breadth-first search to the food) plays a demo; press BOOT to leave it.
 
 ### Tower Stack
 
 - A platform slides back and forth; tap to drop it. Whatever overhangs the platform below is cut off, so sloppy drops make the tower thinner. A drop within 2 px is *perfect* and keeps the full width. Missing completely ends the game.
+- After 20 s on the title screen an autopilot plays a demo (perfect about half of the time, slightly off otherwise); press BOOT to leave it.
 
 All games flash the RGB LED **green** on points (apples, perfect drops, milestones) and turn it **red** on game over. After game over, press BOOT to return to the game's title screen (it also returns by itself after 20 s). High scores are stored per game in flash (NVS) and survive power cycles.
 

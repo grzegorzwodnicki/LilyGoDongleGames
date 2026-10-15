@@ -14,6 +14,8 @@ constexpr int kPerfectTolerance = 2;  // px; a near-perfect drop snaps and keeps
 constexpr int kVisibleLevelsAbove = 7;
 constexpr uint32_t kRestartDelayMs = 500;
 constexpr uint32_t kIdleToTitleMs = 20000;
+constexpr uint32_t kDemoAfterMs = 20000;   // Idle title screen starts the demo.
+constexpr uint32_t kDemoRestartMs = 1500;  // Pause after a demo crash.
 constexpr char kPrefsNamespace[] = "tower";
 
 constexpr uint16_t kPalette[] = {TFT_RED, TFT_ORANGE, TFT_YELLOW, TFT_GREEN, TFT_CYAN, TFT_MAGENTA};
@@ -30,6 +32,7 @@ void TowerGame::enter() { showTitle(); }
 
 void TowerGame::showTitle() {
   state_ = State::kTitle;
+  titleSinceMs_ = millis();
   movingVisible_ = false;
   chunkActive_ = false;
   level_ = 0;
@@ -46,10 +49,13 @@ void TowerGame::startMovingBlock() {
   movingX_ = fromLeft ? 0 : kWidth - movingW_;
   direction_ = fromLeft ? 1 : -1;
   movingVisible_ = true;
+  // The autopilot is perfect about half of the time and slightly off otherwise.
+  demoOffset_ = random(100) < 55 ? 0 : static_cast<int>(random(-6, 7));
 }
 
-void TowerGame::reset() {
-  state_ = State::kPlaying;
+void TowerGame::reset(State next) {
+  state_ = next;
+  demoRestartAtMs_ = 0;
   x_[0] = kBaseX;
   w_[0] = kBaseWidth;
   level_ = 1;
@@ -70,6 +76,10 @@ void TowerGame::cutChunk(int x, int width) {
 }
 
 void TowerGame::gameOver() {
+  if (state_ == State::kDemo) {  // The demo just waits a moment and starts over.
+    demoRestartAtMs_ = millis() + kDemoRestartMs;
+    return;
+  }
   state_ = State::kGameOver;
   diedAtMs_ = millis();
   status_led::set(255, 0, 0);
@@ -99,8 +109,10 @@ void TowerGame::drop() {
   if (abs(mx - px) <= kPerfectTolerance) {
     newX = px;
     newW = pw;
-    status_led::set(0, 255, 0);
-    ledOffAtMs_ = millis() + 150;
+    if (state_ == State::kPlaying) {
+      status_led::set(0, 255, 0);
+      ledOffAtMs_ = millis() + 150;
+    }
   } else if (mx < px) {
     cutChunk(mx, px - mx);
   } else {
@@ -134,13 +146,28 @@ void TowerGame::update(bool buttonDown) {
   }
 
   if (state_ == State::kTitle) {
-    if (pressed) reset();
+    if (pressed) {
+      reset(State::kPlaying);
+    } else if (millis() - titleSinceMs_ > kDemoAfterMs) {
+      reset(State::kDemo);
+    }
     return;
   }
   if (state_ == State::kGameOver) {
     const uint32_t sinceDeath = millis() - diedAtMs_;
     if ((pressed && sinceDeath > kRestartDelayMs) || sinceDeath > kIdleToTitleMs) showTitle();
     return;
+  }
+
+  if (state_ == State::kDemo) {
+    if (pressed) {
+      showTitle();
+      return;
+    }
+    if (demoRestartAtMs_ != 0) {
+      if (millis() >= demoRestartAtMs_) reset(State::kDemo);
+      return;
+    }
   }
 
   movingX_ += direction_ * speed();
@@ -156,7 +183,13 @@ void TowerGame::update(bool buttonDown) {
   const float target = max(0, level_ - kVisibleLevelsAbove);
   camera_ += (target - camera_) * 0.15f;
 
-  if (pressed) drop();
+  if (state_ == State::kDemo ? demoWantsDrop() : pressed) drop();
+}
+
+// Drops when the block passes over the spot above the previous block (plus the planned miss).
+bool TowerGame::demoWantsDrop() const {
+  const float target = x_[level_ - 1] + demoOffset_;
+  return fabsf(movingX_ - target) <= max(1.0f, speed() * 0.5f);
 }
 
 void TowerGame::draw() const {
@@ -191,6 +224,10 @@ void TowerGame::draw() const {
   c.setTextDatum(TL_DATUM);
   c.setTextColor(TFT_WHITE);
   c.drawString(String(score_), 3, 2, 2);
+  if (state_ == State::kDemo && (frame_ / 30) % 2 == 0) {
+    c.setTextDatum(TC_DATUM);
+    c.drawString("DEMO", kWidth / 2, 2, 2);
+  }
 
   if (state_ == State::kGameOver) {
     c.fillRect(4, 14, kWidth - 8, 52, TFT_BLACK);

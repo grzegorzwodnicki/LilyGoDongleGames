@@ -4,6 +4,7 @@
 
 // One-button Tower Stack. Tap to stop the sliding platform; whatever hangs
 // over the platform below is cut off, so sloppy drops make the tower thinner.
+// After a while on the title screen an autopilot plays a demo.
 class TowerGame : public GameBase {
  public:
   const char* name() const override { return "TOWER STACK"; }
@@ -13,20 +14,24 @@ class TowerGame : public GameBase {
   void draw() const override;
 
  private:
-  enum class State : uint8_t { kTitle, kPlaying, kGameOver };
+  enum class State : uint8_t { kTitle, kPlaying, kGameOver, kDemo };
   static constexpr int kMaxLevels = 250;
 
-  void reset();
+  void reset(State next);  // Starts a round (kPlaying or kDemo).
   void showTitle();
   void drop();
   void startMovingBlock();
   void cutChunk(int x, int width);
   void gameOver();
   float speed() const;
+  bool demoWantsDrop() const;
 
   State state_ = State::kTitle;
   bool wasDown_ = false;
   uint32_t frame_ = 0;
+  uint32_t titleSinceMs_ = 0;
+  uint32_t demoRestartAtMs_ = 0;  // Non-zero while a crashed demo waits to restart.
+  int demoOffset_ = 0;            // How far the autopilot misses the perfect spot, px.
   uint32_t diedAtMs_ = 0;
   uint32_t ledOffAtMs_ = 0;
 
