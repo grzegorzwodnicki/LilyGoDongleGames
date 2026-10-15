@@ -1,8 +1,7 @@
 #include "Flappy.h"
 
-#include <Preferences.h>
-
 #include "Display.h"
+#include "HighScore.h"
 #include "StatusLed.h"
 
 namespace {
@@ -31,26 +30,12 @@ constexpr uint16_t kPipeDark = 0x03E0;
 constexpr uint16_t kGroundBrown = 0xA3A0;
 constexpr char kPrefsNamespace[] = "flappy";
 
-int loadHighScore() {
-  Preferences prefs;
-  prefs.begin(kPrefsNamespace, /*readOnly=*/false);  // Creates the namespace on first run.
-  const int value = prefs.getUInt("high", 0);
-  prefs.end();
-  return value;
-}
-
-void saveHighScore(int value) {
-  Preferences prefs;
-  prefs.begin(kPrefsNamespace, /*readOnly=*/false);
-  prefs.putUInt("high", value);
-  prefs.end();
-}
 }  // namespace
 
 void FlappyGame::enter() { showTitle(); }
 
 void FlappyGame::begin() {
-  highScore_ = loadHighScore();
+  highScore_ = highscore::load(kPrefsNamespace);
   titleSinceMs_ = millis();
   birdY_ = kHeight / 2 - kBirdHeight / 2;
 }
@@ -103,7 +88,7 @@ void FlappyGame::gameOver() {
   status_led::set(255, 0, 0);
   if (score_ > highScore_) {
     highScore_ = score_;
-    saveHighScore(highScore_);
+    highscore::save(kPrefsNamespace, highScore_);
   }
 }
 

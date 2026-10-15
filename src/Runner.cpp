@@ -1,8 +1,7 @@
 #include "Runner.h"
 
-#include <Preferences.h>
-
 #include "Display.h"
+#include "HighScore.h"
 #include "StatusLed.h"
 
 namespace {
@@ -26,23 +25,9 @@ constexpr float kDemoLeadFrames = 8;      // The autopilot jumps this many frame
 constexpr uint16_t kCactusGreen = 0x07E0;
 constexpr char kPrefsNamespace[] = "runner";
 
-int loadHighScore() {
-  Preferences prefs;
-  prefs.begin(kPrefsNamespace, /*readOnly=*/false);  // Creates the namespace on first run.
-  const int value = prefs.getUInt("high", 0);
-  prefs.end();
-  return value;
-}
-
-void saveHighScore(int value) {
-  Preferences prefs;
-  prefs.begin(kPrefsNamespace, /*readOnly=*/false);
-  prefs.putUInt("high", value);
-  prefs.end();
-}
 }  // namespace
 
-void RunnerGame::begin() { highScore_ = loadHighScore(); }
+void RunnerGame::begin() { highScore_ = highscore::load(kPrefsNamespace); }
 
 void RunnerGame::enter() { showTitle(); }
 
@@ -99,7 +84,7 @@ void RunnerGame::gameOver() {
   status_led::set(255, 0, 0);
   if (score_ > highScore_) {
     highScore_ = score_;
-    saveHighScore(highScore_);
+    highscore::save(kPrefsNamespace, highScore_);
   }
 }
 

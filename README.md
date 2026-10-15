@@ -1,6 +1,6 @@
 # LilyGoDongleGames
 
-A tiny one-button game console for the **LilyGo T-Dongle S3** (ESP32-S3, 0.96" 80x160 ST7735 display, on-board APA102 RGB LED). The only input is the BOOT button.
+A tiny one-button game console with four games for the **LilyGo T-Dongle S3** (ESP32-S3, 0.96" 80x160 ST7735 display, on-board APA102 RGB LED). The only input is the BOOT button.
 
 ## Controls
 
@@ -26,7 +26,15 @@ The button that started a game is ignored until you release it, so a game never 
 - Tap to jump, hold to jump higher. Obstacles speed up with your score.
 - After 20 s on the title screen an autopilot plays a demo; press BOOT to leave it.
 
-Both games flash the RGB LED **green** on points or milestones and turn it **red** on game over. After game over, press BOOT to return to the game's title screen (it also returns by itself after 20 s). High scores are stored per game in flash (NVS) and survive power cycles.
+### Snake
+
+- Tap to turn clockwise. The field wraps around at the edges, so only hitting yourself ends the game. The snake speeds up as it grows.
+
+### Tower Stack
+
+- A platform slides back and forth; tap to drop it. Whatever overhangs the platform below is cut off, so sloppy drops make the tower thinner. A drop within 2 px is *perfect* and keeps the full width. Missing completely ends the game.
+
+All games flash the RGB LED **green** on points (apples, perfect drops, milestones) and turn it **red** on game over. After game over, press BOOT to return to the game's title screen (it also returns by itself after 20 s). High scores are stored per game in flash (NVS) and survive power cycles.
 
 ## Hardware
 
@@ -69,6 +77,9 @@ src/Menu.*          game picker
 src/Button.*        tap / hold detection
 src/Flappy.*        Flappy Bird
 src/Runner.*        Runner
+src/Snake.*         Snake
+src/Tower.*         Tower Stack
+src/HighScore.*     per-game high scores in flash (NVS)
 src/Display.*       double-buffered LCD access
 src/StatusLed.*     APA102 LED driver (bit-banged)
 platformio.ini      board, libraries and display configuration

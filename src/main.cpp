@@ -6,6 +6,8 @@
 #include "GameBase.h"
 #include "Menu.h"
 #include "Runner.h"
+#include "Snake.h"
+#include "Tower.h"
 #include "StatusLed.h"
 
 namespace {
@@ -17,7 +19,9 @@ constexpr uint32_t kExitHintMs = 1000;   // Show the exit progress bar after thi
 
 FlappyGame flappy;
 RunnerGame runner;
-GameBase* const games[] = {&flappy, &runner};
+SnakeGame snake;
+TowerGame tower;
+GameBase* const games[] = {&flappy, &runner, &snake, &tower};
 constexpr int kGameCount = sizeof(games) / sizeof(games[0]);
 
 Menu menu(games, kGameCount);
