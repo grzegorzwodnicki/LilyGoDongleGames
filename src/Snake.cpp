@@ -6,6 +6,7 @@
 
 namespace {
 constexpr int kWidth = 160;
+constexpr int kFieldTop = 10;  // Height of the score bar above the field.
 constexpr int kStartLength = 3;
 constexpr int kDx[] = {1, 0, -1, 0};
 constexpr int kDy[] = {0, 1, 0, -1};
@@ -138,10 +139,19 @@ void SnakeGame::draw() const {
     return;
   }
 
-  c.fillRect(food_.x * kCell, food_.y * kCell, kCell - 1, kCell - 1, TFT_RED);
+  // Score bar.
+  c.setTextDatum(TL_DATUM);
+  c.setTextColor(TFT_WHITE);
+  c.drawString("SCORE " + String(score_), 2, 1, 1);
+  c.setTextDatum(TR_DATUM);
+  c.setTextColor(TFT_DARKGREY);
+  c.drawString("BEST " + String(highScore_), kWidth - 2, 1, 1);
+  c.drawFastHLine(0, kFieldTop - 2, kWidth, TFT_DARKGREY);
+
+  c.fillRect(food_.x * kCell, kFieldTop + food_.y * kCell, kCell - 1, kCell - 1, TFT_RED);
   for (int i = length_ - 1; i >= 0; --i) {
     const Cell cell = bodyAt(i);
-    c.fillRect(cell.x * kCell, cell.y * kCell, kCell - 1, kCell - 1, i == 0 ? TFT_YELLOW : TFT_GREEN);
+    c.fillRect(cell.x * kCell, kFieldTop + cell.y * kCell, kCell - 1, kCell - 1, i == 0 ? TFT_YELLOW : TFT_GREEN);
   }
 
   if (state_ == State::kGameOver) {

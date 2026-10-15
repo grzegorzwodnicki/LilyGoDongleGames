@@ -18,7 +18,7 @@ class SnakeGame : public GameBase {
     int8_t y;
   };
   static constexpr int kCols = 32;
-  static constexpr int kRows = 16;
+  static constexpr int kRows = 14;  // The remaining 10 px on top show the score.
   static constexpr int kCell = 5;  // px per grid cell.
   static constexpr int kMaxLength = kCols * kRows;
 
