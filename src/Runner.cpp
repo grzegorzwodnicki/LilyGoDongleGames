@@ -20,6 +20,8 @@ constexpr float kMaxSpeed = 6.0f;
 constexpr int kMilestoneScore = 100;
 constexpr uint32_t kRestartDelayMs = 500;
 constexpr uint32_t kIdleToTitleMs = 20000;
+constexpr uint32_t kDemoAfterMs = 20000;  // Idle title screen starts the demo.
+constexpr float kDemoLeadFrames = 8;      // The autopilot jumps this many frames before an obstacle.
 
 constexpr uint16_t kCactusGreen = 0x07E0;
 constexpr char kPrefsNamespace[] = "runner";
@@ -46,14 +48,17 @@ void RunnerGame::enter() { showTitle(); }
 
 void RunnerGame::showTitle() {
   state_ = State::kTitle;
+  titleSinceMs_ = millis();
   obstacleCount_ = 0;
   score_ = 0;
   height_ = 0;
   status_led::set(0, 0, 0);
 }
 
-void RunnerGame::reset() {
-  state_ = State::kPlaying;
+void RunnerGame::reset(State next) {
+  state_ = next;
+  // The press that starts a round must not also count as the first jump.
+  stepWasDown_ = next == State::kPlaying && wasDown_;
   height_ = 0;
   velocity_ = 0;
   speed_ = kMinSpeed;
@@ -109,7 +114,11 @@ void RunnerGame::update(bool buttonDown) {
   }
 
   if (state_ == State::kTitle) {
-    if (pressed) reset();
+    if (pressed) {
+      reset(State::kPlaying);
+    } else if (millis() - titleSinceMs_ > kDemoAfterMs) {
+      reset(State::kDemo);
+    }
     return;
   }
   if (state_ == State::kGameOver) {
@@ -117,6 +126,32 @@ void RunnerGame::update(bool buttonDown) {
     if ((pressed && sinceDeath > kRestartDelayMs) || sinceDeath > kIdleToTitleMs) showTitle();
     return;
   }
+  if (state_ == State::kDemo) {
+    if (pressed) {
+      showTitle();
+      return;
+    }
+    step(autopilotDown());
+    return;
+  }
+  step(buttonDown);
+}
+
+// Holds the button for a full jump when the next obstacle is a few frames away.
+bool RunnerGame::autopilotDown() const {
+  if (height_ > 0) return velocity_ > 0;  // Keep holding while rising.
+  for (int i = 0; i < obstacleCount_; ++i) {
+    const Obstacle& o = obstacles_[i];
+    if (o.x + o.width > kPlayerX + 2) {  // First obstacle that is not behind us yet.
+      return o.x - (kPlayerX + kPlayerWidth - 2) <= kDemoLeadFrames * speed_;
+    }
+  }
+  return false;
+}
+
+void RunnerGame::step(bool buttonDown) {
+  const bool pressed = buttonDown && !stepWasDown_;
+  stepWasDown_ = buttonDown;
 
   // Jump physics.
   if (pressed && height_ == 0) velocity_ = kJumpVelocity;
@@ -139,16 +174,24 @@ void RunnerGame::update(bool buttonDown) {
   untilNextObstacle_ -= speed_;
   if (untilNextObstacle_ <= 0 && obstacleCount_ < kMaxObstacles) spawnObstacle();
 
-  // Score and milestone flash.
+  // Score and milestone flash (no LED in the demo).
   scoreExact_ += speed_ * 0.08f;
   score_ = static_cast<int>(scoreExact_);
   if (score_ / kMilestoneScore > milestone_) {
     milestone_ = score_ / kMilestoneScore;
-    status_led::set(0, 255, 0);
-    ledOffAtMs_ = millis() + 150;
+    if (state_ == State::kPlaying) {
+      status_led::set(0, 255, 0);
+      ledOffAtMs_ = millis() + 150;
+    }
   }
 
-  if (collides()) gameOver();
+  if (collides()) {
+    if (state_ == State::kDemo) {
+      reset(State::kDemo);  // Demo just starts a fresh round.
+    } else {
+      gameOver();
+    }
+  }
 }
 
 void RunnerGame::draw() const {
@@ -174,7 +217,8 @@ void RunnerGame::draw() const {
   // Player, with a running leg animation on the ground.
   const int bottom = kGroundY - static_cast<int>(height_);
   const int top = bottom - kPlayerHeight;
-  const bool legUp = height_ == 0 && state_ == State::kPlaying && (frame_ / 5) % 2 == 0;
+  const bool running = state_ == State::kPlaying || state_ == State::kDemo;
+  const bool legUp = height_ == 0 && running && (frame_ / 5) % 2 == 0;
   c.fillRect(kPlayerX, top, kPlayerWidth, kPlayerHeight - 4, TFT_WHITE);
   c.fillRect(kPlayerX + 6, top + 2, 2, 2, TFT_BLACK);
   c.fillRect(kPlayerX + 1, bottom - 4, 3, legUp ? 2 : 4, TFT_WHITE);
@@ -199,6 +243,12 @@ void RunnerGame::draw() const {
   c.setTextDatum(TL_DATUM);
   c.setTextColor(TFT_DARKGREY);
   c.drawString("HI " + String(highScore_), 2, 2, 1);
+
+  if (state_ == State::kDemo && (frame_ / 30) % 2 == 0) {
+    c.setTextDatum(TC_DATUM);
+    c.setTextColor(TFT_WHITE);
+    c.drawString("DEMO", kWidth / 2, 2, 1);
+  }
 
   if (state_ == State::kGameOver) {
     c.fillRect(4, 14, kWidth - 8, 52, TFT_BLACK);

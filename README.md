@@ -1,4 +1,4 @@
-# FlappyDongleLilyGo
+# LilyGoDongleGames
 
 A tiny one-button game console for the **LilyGo T-Dongle S3** (ESP32-S3, 0.96" 80x160 ST7735 display, on-board APA102 RGB LED). The only input is the BOOT button.
 
@@ -24,6 +24,7 @@ The button that started a game is ignored until you release it, so a game never 
 ### Runner
 
 - Tap to jump, hold to jump higher. Obstacles speed up with your score.
+- After 20 s on the title screen an autopilot plays a demo; press BOOT to leave it.
 
 Both games flash the RGB LED **green** on points or milestones and turn it **red** on game over. After game over, press BOOT to return to the game's title screen (it also returns by itself after 20 s). High scores are stored per game in flash (NVS) and survive power cycles.
 
