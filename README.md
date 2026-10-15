@@ -2,6 +2,8 @@
 
 A tiny one-button game console with four games for the **LilyGo T-Dongle S3** (ESP32-S3, 0.96" 80x160 ST7735 display, on-board APA102 RGB LED). The only input is the BOOT button.
 
+<p align="center"><img src="imgs/menu.jpg" alt="Game menu on the T-Dongle S3" width="600"></p>
+
 ## Controls
 
 | Where       | Action                    | Result                                       |
@@ -17,26 +19,42 @@ The button that started a game is ignored until you release it, so a game never 
 
 ### Flappy Bird
 
+<img src="imgs/flappy.jpg" alt="Flappy Bird" width="360" align="right">
+
 - Press BOOT to flap and fly through the gaps between pipes. Each pair you pass is one point.
 - The gap narrows slowly as your score grows.
 - After 20 s on the title screen an autopilot plays a demo; press BOOT to leave it.
 
 ### Runner
 
+<img src="imgs/runner.jpg" alt="Runner" width="360" align="right">
+
 - Tap to jump, hold to jump higher. Obstacles speed up with your score.
 - After 20 s on the title screen an autopilot plays a demo; press BOOT to leave it.
 
 ### Snake
+
+<img src="imgs/snake.jpg" alt="Snake title screen" width="360" align="right">
 
 - Tap to turn clockwise. The field wraps around at the edges, so only hitting yourself ends the game. The snake speeds up as it grows.
 - After 20 s on the title screen an autopilot (breadth-first search to the food) plays a demo; press BOOT to leave it.
 
 ### Tower Stack
 
+<img src="imgs/tower.jpg" alt="Tower Stack title screen" width="360" align="right">
+
 - A platform slides back and forth; tap to drop it. Whatever overhangs the platform below is cut off, so sloppy drops make the tower thinner. A drop within 2 px is *perfect* and keeps the full width. Missing completely ends the game.
 - After 20 s on the title screen an autopilot plays a demo (perfect about half of the time, slightly off otherwise); press BOOT to leave it.
 
 All games flash the RGB LED **green** on points (apples, perfect drops, milestones) and turn it **red** on game over. After game over, press BOOT to return to the game's title screen (it also returns by itself after 20 s). High scores are stored per game in flash (NVS) and survive power cycles.
+
+<p align="center"><img src="imgs/game-over.jpg" alt="Game over screen with the red LED" width="480"></p>
+
+## Gallery
+
+| | |
+|---|---|
+| <img src="imgs/flappy-title.jpg" alt="Flappy Bird title screen"> | <img src="imgs/runner-title.jpg" alt="Runner title screen with high score"> |
 
 ## Hardware
 
